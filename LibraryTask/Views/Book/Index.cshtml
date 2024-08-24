@@ -1,0 +1,230 @@
+﻿@model BusinessLayer.ModelViews.BookModels.BookListViewModel
+
+@{
+    ViewData["Title"] = "Books";
+}
+
+<h1>Books</h1>
+
+<!-- Add Book Button with Hover Effect -->
+<div style="margin-bottom: 20px;">
+    <button class="btn btn-success" id="addBookButton">Add New Book</button>
+</div>
+
+<!-- Books Table -->
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Max Copies</th>
+            <th>Available Copies</th>
+            <th>Image</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var book in Model.Books)
+        {
+            <tr>
+                <td>@book.Title</td>
+                <td>@book.MaxCopies</td>
+                <td>@book.AvailableCopies</td>
+                <td>
+                    @if (!string.IsNullOrEmpty(book.ImageUrl))
+                    {
+                        <img src="@book.ImageUrl" alt="@book.Title" style="width: 100px; height: auto;" />
+                    }
+                </td>
+                <td>
+                    <button class="btn btn-warning btn-edit" data-id="@book.Id">Edit</button>
+                    <button class="btn btn-danger btn-delete" data-id="@book.Id">Delete</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Pagination -->
+<nav>
+    <ul class="pagination">
+        @if (Model.PagingInfo.CurrentPage > 1)
+        {
+            <li class="page-item">
+                <a class="page-link" href="@Url.Action("Index", new { page = Model.PagingInfo.CurrentPage - 1 })">Previous</a>
+            </li>
+        }
+        @for (int i = 1; i <= (Model.PagingInfo.TotalItems + Model.PagingInfo.ItemsPerPage - 1) / Model.PagingInfo.ItemsPerPage; i++)
+        {
+            <li class="page-item @(i == Model.PagingInfo.CurrentPage ? "active" : "")">
+                <a class="page-link" href="@Url.Action("Index", new { page = i })">@i</a>
+            </li>
+        }
+        @if (Model.PagingInfo.CurrentPage < (Model.PagingInfo.TotalItems + Model.PagingInfo.ItemsPerPage - 1) / Model.PagingInfo.ItemsPerPage)
+        {
+            <li class="page-item">
+                <a class="page-link" href="@Url.Action("Index", new { page = Model.PagingInfo.CurrentPage + 1 })">Next</a>
+            </li>
+        }
+    </ul>
+</nav>
+
+<!-- Add Book Modal -->
+<div class="modal fade" id="addBookModal" tabindex="-1" aria-labelledby="addBookModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addBookModalLabel">Add New Book</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addBookForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="Title">Title</label>
+                        <input type="text" class="form-control" id="Title" name="Title" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="MaxCopies">Max Copies</label>
+                        <input type="number" class="form-control" id="MaxCopies" name="MaxCopies" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="BookImage">Image</label>
+                        <input type="file" class="form-control" id="BookImage" name="BookImage" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Book</button>
+                </form>
+                <div id="responseMessage" style="margin-top: 10px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Book Modal -->
+<div class="modal fade" id="editBookModal" tabindex="-1" aria-labelledby="editBookModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editBookModalLabel">Edit Book</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editBookForm" enctype="multipart/form-data">
+                    <input type="hidden" id="EditBookId" name="Id" />
+                    <div class="form-group">
+                        <label for="EditTitle">Title</label>
+                        <input type="text" class="form-control" id="EditTitle" name="Title" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="EditMaxCopies">Max Copies</label>
+                        <input type="number" class="form-control" id="EditMaxCopies" name="MaxCopies" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="EditBookImage">Image</label>
+                        <input type="file" class="form-control" id="EditBookImage" name="BookImage" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Book</button>
+                </form>
+                <div id="editResponseMessage" style="margin-top: 10px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Show Add Book Modal
+            $('#addBookButton').on('click', function () {
+                $('#addBookModal').modal('show');
+            });
+
+            // Handle Add Book Form Submission
+            $('#addBookForm').on('submit', function (e) {
+                e.preventDefault();
+                var formData = new FormData(this);
+
+                $.ajax({
+                    url: '@Url.Action("AddBook", "Book")',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        if (response.success) {
+                            $('#responseMessage').html('<div class="alert alert-success">Book added successfully!</div>');
+                            $('#addBookForm')[0].reset(); // Reset form
+                            $('#addBookModal').modal('hide'); // Hide modal
+                            location.reload(); // Reload page to reflect changes
+                        } else {
+                            $('#responseMessage').html('<div class="alert alert-danger">Failed to add book.</div>');
+                        }
+                    },
+                    error: function () {
+                        $('#responseMessage').html('<div class="alert alert-danger">An error occurred.</div>');
+                    }
+                });
+            });
+
+            // Show Edit Book Modal
+            $('.btn-edit').on('click', function () {
+                var bookId = $(this).data('id');
+                $.get('@Url.Action("GetBookDetails", "Book")', { id: bookId }, function (data) {
+                    $('#EditBookId').val(data.id);
+                    $('#EditTitle').val(data.title);
+                    $('#EditMaxCopies').val(data.maxCopies);
+                    $('#editBookModal').modal('show');
+                });
+            });
+
+            // Handle Edit Book Form Submission
+            $('#editBookForm').on('submit', function (e) {
+                e.preventDefault();
+                var formData = new FormData(this);
+
+                $.ajax({
+                    url: '@Url.Action("UpdateBook", "Book")',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        if (response.success) {
+                            $('#editResponseMessage').html('<div class="alert alert-success">Book updated successfully!</div>');
+                            $('#editBookModal').modal('hide');
+                            location.reload(); // Reload page to reflect changes
+                        } else {
+                            $('#editResponseMessage').html('<div class="alert alert-danger">Failed to update book.</div>');
+                        }
+                    },
+                    error: function () {
+                        $('#editResponseMessage').html('<div class="alert alert-danger">An error occurred.</div>');
+                    }
+                });
+            });
+
+            // Handle Delete Book Button Click
+            $('.btn-delete').on('click', function () {
+                var bookId = $(this).data('id');
+                if (confirm('Are you sure you want to delete this book?')) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteBook", "Book")',
+                        type: 'POST',
+                        data: { id: bookId },
+                        success: function (response) {
+                            if (response.success) {
+                                alert('Book deleted successfully!');
+                                location.reload(); // Reload page to reflect changes
+                            } else {
+                                alert('Failed to delete book.');
+                            }
+                        },
+                        error: function () {
+                            alert('An error occurred.');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+}

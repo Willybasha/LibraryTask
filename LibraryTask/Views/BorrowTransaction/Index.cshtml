@@ -1,0 +1,164 @@
+﻿@model BusinessLayer.ModelViews.BorrowTransactionModels.BorrowTransactionListViewModel
+
+<h1>Borrow Transactions</h1>
+
+<!-- Add New Borrow Button -->
+<div style="margin-bottom: 20px;">
+    <button class="btn btn-primary" id="addBorrowButton">Add New Borrow Transaction</button>
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Borrower Name</th>
+            <th>Book Title</th>
+            <th>Borrow Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var transaction in Model.BorrowTransactions)
+        {
+            <tr>
+                <td>@transaction.Borrower.Name</td>
+                <td>@transaction.Book.Title</td>
+                <td>@transaction.BorrowDate.ToString("MM/dd/yyyy")</td>
+                <td>
+                    <button class="btn btn-success return-book-button" data-id="@transaction.Id">Return Book</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Pagination -->
+<nav>
+    <ul class="pagination">
+        @if (Model.PagingInfo.CurrentPage > 1)
+        {
+            <li class="page-item">
+                <a class="page-link" href="@Url.Action("BorrowTransactions", new { page = Model.PagingInfo.CurrentPage - 1 })">Previous</a>
+            </li>
+        }
+        @for (int i = 1; i <= (Model.PagingInfo.TotalItems + Model.PagingInfo.ItemsPerPage - 1) / Model.PagingInfo.ItemsPerPage; i++)
+        {
+            <li class="page-item @(i == Model.PagingInfo.CurrentPage ? "active" : "")">
+                <a class="page-link" href="@Url.Action("BorrowTransactions", new { page = i })">@i</a>
+            </li>
+        }
+        @if (Model.PagingInfo.CurrentPage < (Model.PagingInfo.TotalItems + Model.PagingInfo.ItemsPerPage - 1) / Model.PagingInfo.ItemsPerPage)
+        {
+            <li class="page-item">
+                <a class="page-link" href="@Url.Action("BorrowTransactions", new { page = Model.PagingInfo.CurrentPage + 1 })">Next</a>
+            </li>
+        }
+    </ul>
+</nav>
+
+<!-- Add Borrow Transaction Modal -->
+<div class="modal fade" id="addBorrowModal" tabindex="-1" aria-labelledby="addBorrowModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addBorrowModalLabel">Add New Borrow Transaction</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addBorrowForm">
+                    @Html.AntiForgeryToken()
+                    <div class="form-group">
+                        <label for="BorrowerId">Borrower</label>
+                        <select class="form-control" id="BorrowerId" name="BorrowerId" required>
+                            <option value="">Select Borrower</option>
+                            @foreach (var borrower in Model.Borrowers)
+                            {
+                                <option value="@borrower.Id">@borrower.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="BookId">Book</label>
+                        <select class="form-control" id="BookId" name="BookId" required>
+                            <option value="">Select Book</option>
+                            @foreach (var book in Model.Books)
+                            {
+                                <option value="@book.Id">@book.Title</option>
+                            }
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+                <div id="responseMessage" style="margin-top: 10px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Show the modal when the "Add New Borrow Transaction" button is clicked
+            $('#addBorrowButton').on('click', function () {
+                $('#addBorrowModal').modal('show');
+            });
+
+            // Handle form submission with AJAX
+            $('#addBorrowForm').on('submit', function (e) {
+                e.preventDefault(); // Prevent the default form submission
+
+                var formData = {
+                    BorrowerId: $('#BorrowerId').val(),
+                    BookId: $('#BookId').val()
+                };
+
+                $.ajax({
+                    url: '@Url.Action("AddBorrowTransaction", "BorrowTransaction")',
+                    type: 'POST',
+                    data: JSON.stringify(formData),
+                    contentType: 'application/json',
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            $('#responseMessage').html('<div class="alert alert-success">Transaction added successfully!</div>');
+                            $('#addBorrowForm')[0].reset(); // Reset form
+                            $('#addBorrowModal').modal('hide'); // Hide modal
+                            location.reload(); // Reload the page to show the updated transactions
+                        } else {
+                            $('#responseMessage').html('<div class="alert alert-danger">' + response.message + '</div>');
+                        }
+                    },
+                    error: function () {
+                        $('#responseMessage').html('<div class="alert alert-danger">An error occurred.</div>');
+                    }
+                });
+            });
+
+            // Handle Return Book button click
+            $('.return-book-button').on('click', function () {
+                var transactionId = $(this).data('id');
+
+                $.ajax({
+                    url: '@Url.Action("ReturnBook", "BorrowTransaction")',
+                    type: 'POST',
+                    data: JSON.stringify({ transactionId: transactionId }),
+                    contentType: 'application/json',
+                    success: function (response) {
+                        if (response.success) {
+                            location.reload(); // Reload the page to show the updated transactions
+                        } else {
+                            alert(response.message); // Display error message
+                        }
+                    },
+                    error: function () {
+                        alert('An error occurred.');
+                    }
+                });
+            });
+
+        });
+    </script>
+}

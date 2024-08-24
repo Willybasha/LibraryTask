@@ -1,0 +1,146 @@
+﻿@model BusinessLayer.ModelViews.BorrowerModels.ListOfBorrowersViewModel
+
+<h1>Borrowers</h1>
+
+<!-- Add Borrower Button with Hover Effect -->
+<div style="margin-bottom: 20px;">
+    <button class="btn btn-success" id="addBorrowerButton">Add New Borrower</button>
+</div>
+
+<!-- Borrowers Table -->
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Code</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var borrower in Model.Borrowers)
+        {
+            <tr id="borrower-row-@borrower.Id">
+                <td>@borrower.Name</td>
+                <td>@borrower.Code</td>
+                <td>
+                    <button class="btn btn-danger delete-borrower" data-id="@borrower.Id">Delete</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Pagination -->
+<nav>
+    <ul class="pagination">
+        @if (Model.PagingInfo.CurrentPage > 1)
+        {
+            <li class="page-item">
+                <a class="page-link" href="@Url.Action("Index", new { page = Model.PagingInfo.CurrentPage - 1 })">Previous</a>
+            </li>
+        }
+        @for (int i = 1; i <= (Model.PagingInfo.TotalItems + Model.PagingInfo.ItemsPerPage - 1) / Model.PagingInfo.ItemsPerPage; i++)
+        {
+            <li class="page-item @(i == Model.PagingInfo.CurrentPage ? "active" : "")">
+                <a class="page-link" href="@Url.Action("Index", new { page = i })">@i</a>
+            </li>
+        }
+        @if (Model.PagingInfo.CurrentPage < (Model.PagingInfo.TotalItems + Model.PagingInfo.ItemsPerPage - 1) / Model.PagingInfo.ItemsPerPage)
+        {
+            <li class="page-item">
+                <a class="page-link" href="@Url.Action("Index", new { page = Model.PagingInfo.CurrentPage + 1 })">Next</a>
+            </li>
+        }
+    </ul>
+</nav>
+
+<!-- Add Borrower Modal -->
+<div class="modal fade" id="addBorrowerModal" tabindex="-1" aria-labelledby="addBorrowerModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addBorrowerModalLabel">Add New Borrower</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addBorrowerForm">
+                    <div class="form-group">
+                        <label for="Name">Name</label>
+                        <input type="text" class="form-control" id="Name" name="Name" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="Code">Code</label>
+                        <input type="text" class="form-control" id="Code" name="Code" required />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Borrower</button>
+                </form>
+                <div id="responseMessage" style="margin-top: 10px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Show the modal when the "Add New Borrower" button is clicked
+            $('#addBorrowerButton').on('click', function () {
+                $('#addBorrowerModal').modal('show');
+            });
+
+            // Handle form submission with AJAX
+            $('#addBorrowerForm').on('submit', function (e) {
+                e.preventDefault(); // Prevent the default form submission
+
+                var formData = new FormData(this);
+
+                $.ajax({
+                    url: '@Url.Action("AddBorrower", "Borrower")',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        if (response.success) {
+                            $('#responseMessage').html('<div class="alert alert-success">Borrower added successfully!</div>');
+                            $('#addBorrowerForm')[0].reset(); // Reset form
+                            $('#addBorrowerModal').modal('hide'); // Hide modal
+                            location.reload(); // Reload page to reflect changes
+                        } else {
+                            $('#responseMessage').html('<div class="alert alert-danger">Failed to add borrower.</div>');
+                        }
+                    },
+                    error: function () {
+                        $('#responseMessage').html('<div class="alert alert-danger">An error occurred.</div>');
+                    }
+                });
+            });
+
+            // Handle delete borrower with AJAX
+            $('.delete-borrower').on('click', function () {
+                var borrowerId = $(this).data('id');
+                if (confirm('Are you sure you want to delete this borrower?')) {
+                    $.ajax({
+                        url: '@Url.Action("DeleteBorrower", "Borrower")',
+                        type: 'POST',
+                        data: { id: borrowerId },
+                        success: function (response) {
+                            if (response.success) {
+                                $('#borrower-row-' + borrowerId).remove();
+                                alert('Borrower deleted successfully.');
+                                location.reload();
+                            } else {
+                                alert(response.message || 'Failed to delete borrower.');
+                            }
+                        },
+                        error: function () {
+                            alert('An error occurred while deleting borrower.');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+}

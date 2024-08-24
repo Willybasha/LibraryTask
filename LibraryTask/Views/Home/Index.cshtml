@@ -1,0 +1,51 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="container text-center my-5">
+    <!-- Welcome Section -->
+    <div class="bg-light py-5 px-3 rounded shadow-sm">
+        <h1 class="display-3 mb-4">Welcome to <span class="text-primary">LibraryTask</span></h1>
+        <p class="lead mb-4">
+            Manage books, borrowers, and transactions with ease.
+        </p>
+    </div>
+
+    <!-- Navigation Links -->
+    <div class="d-flex justify-content-center flex-wrap mt-5 mb-4">
+        <a class="btn btn-outline-primary btn-lg mx-3 my-2 shadow-sm" href="@Url.Action("Index", "Book")">
+            <i class="fas fa-book me-2"></i> Books
+        </a>
+        <a class="btn btn-outline-primary btn-lg mx-3 my-2 shadow-sm" href="@Url.Action("Index", "Borrower")">
+            <i class="fas fa-user me-2"></i> Borrowers
+        </a>
+        <a class="btn btn-outline-primary btn-lg mx-3 my-2 shadow-sm" href="@Url.Action("Index", "BorrowTransaction")">
+            <i class="fas fa-exchange-alt me-2"></i> Borrow Transactions
+        </a>
+    </div>
+
+    <!-- Authentication Buttons -->
+    <div class="mt-4">
+        @if (User.Identity.IsAuthenticated)
+        {
+            <!-- Logout Button -->
+            <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
+                <button type="submit" class="btn btn-danger btn-lg px-5 shadow-sm">
+                    <i class="fas fa-sign-out-alt me-2"></i> Logout
+                </button>
+            </form>
+        }
+        else
+        {
+            <!-- Login Button -->
+            <a href="@Url.Action("Login", "Auth")" class="btn btn-success btn-lg px-5 shadow-sm">
+                <i class="fas fa-sign-in-alt me-2"></i> Login
+            </a>
+        }
+    </div>
+</div>
+
+
+@section Scripts {
+    <script src="https://kit.fontawesome.com/a076d05399.js"></script> <!-- For font awesome icons -->
+}
